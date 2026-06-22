@@ -6,7 +6,6 @@
 #define DEV_TOOLS_ASSIGNMENT_MAZE_H
 
 #include <cstddef>
-#include <cstdint>
 #include <iostream>
 #include <optional>
 #include <random>
