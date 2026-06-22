@@ -5,6 +5,7 @@
 #include "maze.h"
 
 #include <limits>
+#include <stack>
 #include <stdexcept>
 #include <utility>
 
@@ -172,4 +173,40 @@ std::vector<Maze::Neighbor> Maze::unvisitedNeighbors(const std::size_t index, co
     }
 
     return neighbors;
+}
+
+std::optional<Maze::Neighbor> Maze::randomUnvisitedNeighbor(const std::size_t index, const std::vector<bool> &visited) {
+    // optionally return a random unvisited neighbor, or std::nullopt if there are none
+    const std::vector<Neighbor> neighbors = unvisitedNeighbors(index, visited);
+
+    if (neighbors.empty()) {
+        return std::nullopt;
+    }
+
+    std::uniform_int_distribution<std::size_t> distribution(0, neighbors.size() - 1);
+    return neighbors[distribution(gen_)];
+}
+
+void Maze::generateRandomizedDfs() {
+    walls_.assign(cellCount(), fullWallMask());
+
+    std::vector visited(cellCount(), false);
+    std::stack<std::size_t> stack;
+
+    visited[0] = true;
+    stack.push(0);
+
+    while (!stack.empty()) {
+        const std::size_t current = stack.top();
+        const auto next = randomUnvisitedNeighbor(current, visited);
+
+        if (!next) {
+            stack.pop();
+            continue;
+        }
+
+        removeWallBetween(current, next->axis, next->positiveDirection);
+        visited[next->index] = true;
+        stack.push(next->index);
+    }
 }

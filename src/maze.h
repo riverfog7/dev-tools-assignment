@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <optional>
 #include <random>
 #include <vector>
 
@@ -67,6 +68,7 @@ private:
     void removeWall(std::size_t index, int axis, bool positiveDirection);
     void removeWallBetween(std::size_t index, int axis, bool positiveDirection);
     std::vector<Neighbor> unvisitedNeighbors(std::size_t index, const std::vector<bool>& visited) const;
+    std::optional<Neighbor> randomUnvisitedNeighbor(std::size_t index, const std::vector<bool>& visited);
     void generateRandomizedDfs();
 };
 
