@@ -39,6 +39,9 @@ public:
     std::size_t cellCount() const;
     MazeCell operator()(const Coord &coord) const;
 
+    std::ostream& serialize(std::ostream& out) const;
+    std::istream& deserialize(std::istream& in);
+
 private:
     struct Neighbor {
         std::size_t index;
@@ -55,9 +58,6 @@ private:
     // LSB+1: axis1 - wall exists
     // LSB+2: axis2 + wall exists...
     std::vector<std::uint64_t> walls_;
-
-    std::ostream& serialize(std::ostream& out) const;
-    std::istream& deserialize(std::istream& in);
 
     std::size_t indexOf(const Coord& coord) const;
     Coord coordOf(std::size_t index) const;
