@@ -5,9 +5,10 @@
 #ifndef DEV_TOOLS_ASSIGNMENT_MAZE_H
 #define DEV_TOOLS_ASSIGNMENT_MAZE_H
 
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <random>
-#include <cstdint>
 #include <vector>
 
 class Maze
@@ -35,9 +36,16 @@ public:
     Maze(std::vector<int> dimensions, unsigned int seed);
     const std::vector<int>& shape() const;
     int dim() const;
+    std::size_t cellCount() const;
     MazeCell operator()(const Coord &coord) const;
 
 private:
+    struct Neighbor {
+        std::size_t index;
+        int axis;
+        bool positiveDirection;
+    };
+
     std::mt19937 gen_;
     std::vector<int> dimensions_;
 
@@ -51,6 +59,14 @@ private:
     std::ostream& serialize(std::ostream& out) const;
     std::istream& deserialize(std::istream& in);
 
+    std::size_t indexOf(const Coord& coord) const;
+    Coord coordOf(std::size_t index) const;
+    std::uint64_t fullWallMask() const;
+    bool hasNeighbor(std::size_t index, int axis, bool positiveDirection) const;
+    std::size_t neighborIndex(std::size_t index, int axis, bool positiveDirection) const;
+    void removeWall(std::size_t index, int axis, bool positiveDirection);
+    void removeWallBetween(std::size_t index, int axis, bool positiveDirection);
+    std::vector<Neighbor> unvisitedNeighbors(std::size_t index, const std::vector<bool>& visited) const;
     void generateRandomizedDfs();
 };
 

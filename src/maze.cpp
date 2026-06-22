@@ -4,7 +4,9 @@
 
 #include "maze.h"
 
+#include <limits>
 #include <stdexcept>
+#include <utility>
 
 Maze::MazeCell::MazeCell(const std::uint64_t walls, const int dimensions)
     : walls_(walls), dimensions_(dimensions)
@@ -67,4 +69,107 @@ Maze::MazeCell Maze::operator()(const Coord &coord) const {
 
     // .at() is bounds checked
     return MazeCell(walls_.at(index), dim());
+}
+
+std::size_t Maze::cellCount() const {
+    std::size_t count = 1;
+    for (const int size : dimensions_) {
+        count *= static_cast<std::size_t>(size);
+    }
+
+    return count;
+}
+
+std::size_t Maze::indexOf(const Coord &coord) const {
+    if (coord.size() != dimensions_.size()) {
+        throw std::invalid_argument("Maze coordinate has wrong dimension count");
+    }
+
+    std::size_t index = 0;
+    std::size_t stride = 1;
+    for (std::size_t axis = 0; axis < dimensions_.size(); ++axis) {
+        if (coord[axis] < 0 || coord[axis] >= dimensions_[axis]) {
+            throw std::out_of_range("Maze coordinate is out of bounds");
+        }
+
+        index += static_cast<std::size_t>(coord[axis]) * stride;
+        stride *= static_cast<std::size_t>(dimensions_[axis]);
+    }
+
+    return index;
+}
+
+Maze::Coord Maze::coordOf(const std::size_t index) const {
+    if (index >= cellCount()) {
+        throw std::out_of_range("Maze index is out of bounds");
+    }
+
+    Coord coord(dimensions_.size(), 0);
+    std::size_t remaining = index;
+    for (std::size_t axis = 0; axis < dimensions_.size(); ++axis) {
+        coord[axis] = static_cast<int>(remaining % static_cast<std::size_t>(dimensions_[axis]));
+        remaining /= static_cast<std::size_t>(dimensions_[axis]);
+    }
+
+    return coord;
+}
+
+std::uint64_t Maze::fullWallMask() const {
+    const int bitCount = dim() * 2;
+    if (bitCount == 64) {
+        return std::numeric_limits<std::uint64_t>::max();
+    }
+
+    // 000...010...000 - 1
+    // = 000...001...111
+    return (std::uint64_t{1} << bitCount) - 1;
+}
+
+bool Maze::hasNeighbor(const std::size_t index, const int axis, const bool positiveDirection) const {
+    if (axis < 0 || axis >= dim()) {
+        throw std::out_of_range("Maze axis is out of bounds");
+    }
+
+    const Coord coord = coordOf(index);
+    return positiveDirection ? coord[axis] + 1 < dimensions_[axis] : coord[axis] > 0;
+}
+
+std::size_t Maze::neighborIndex(const std::size_t index, const int axis, const bool positiveDirection) const {
+    if (!hasNeighbor(index, axis, positiveDirection)) {
+        throw std::out_of_range("Maze neighbor index is out of bounds");
+    }
+
+    Coord coord = coordOf(index);
+    coord[axis] += positiveDirection ? 1 : -1;
+    return indexOf(coord);
+}
+
+void Maze::removeWall(const std::size_t index, const int axis, const bool positiveDirection) {
+    const MazeCell cell(walls_.at(index), dim());
+    walls_.at(index) &= ~cell.wallBit(axis, positiveDirection);
+}
+
+void Maze::removeWallBetween(const std::size_t index, const int axis, const bool positiveDirection) {
+    const std::size_t neighbor = neighborIndex(index, axis, positiveDirection);
+    removeWall(index, axis, positiveDirection);
+    removeWall(neighbor, axis, !positiveDirection);
+}
+
+std::vector<Maze::Neighbor> Maze::unvisitedNeighbors(const std::size_t index, const std::vector<bool> &visited) const {
+    std::vector<Neighbor> neighbors;
+
+    for (int axis = 0; axis < dim(); ++axis) {
+        for (const bool positiveDirection : {true, false}) {
+            if (!hasNeighbor(index, axis, positiveDirection)) {
+                continue;
+            }
+
+            const std::size_t neighbor = neighborIndex(index, axis, positiveDirection);
+            if (!visited.at(neighbor)) {
+                neighbors.push_back({neighbor, axis, positiveDirection});
+            }
+        }
+    }
+
+    return neighbors;
 }
