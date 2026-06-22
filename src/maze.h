@@ -32,6 +32,7 @@ public:
     };
     using Coord = std::vector<int>;
 
+    Maze();
     Maze(std::vector<int> dimensions);
     Maze(std::vector<int> dimensions, unsigned int seed);
     const std::vector<int>& shape() const;
@@ -61,6 +62,7 @@ private:
 
     std::size_t indexOf(const Coord& coord) const;
     Coord coordOf(std::size_t index) const;
+    void validateDimensions() const;
     std::uint64_t fullWallMask() const;
     bool hasNeighbor(std::size_t index, int axis, bool positiveDirection) const;
     std::size_t neighborIndex(std::size_t index, int axis, bool positiveDirection) const;

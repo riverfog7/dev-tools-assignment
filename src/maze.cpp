@@ -115,12 +115,19 @@ std::uint64_t Maze::MazeCell::wallBit(const int axis, const bool positiveDirecti
     return 1 << (axis * 2 + directionOffset);
 }
 
+Maze::Maze()
+    : gen_(std::random_device{}())
+{
+}
+
 Maze::Maze(std::vector<int> dimensions)
     : Maze(std::move(dimensions), std::random_device{}())
 {
 }
 
 Maze::Maze(std::vector<int> dimensions, const unsigned int seed) : gen_(seed), dimensions_(std::move(dimensions)) {
+    validateDimensions();
+    generateRandomizedDfs();
 }
 
 const std::vector<int>& Maze::shape() const {
@@ -297,6 +304,20 @@ Maze::Coord Maze::coordOf(const std::size_t index) const {
     }
 
     return coord;
+}
+
+void Maze::validateDimensions() const {
+    if (dimensions_.empty()) {
+        throw std::invalid_argument("Maze must have at least one dimension");
+    }
+    if (dimensions_.size() > 32) {
+        throw std::invalid_argument("Maze supports at most 32 dimensions");
+    }
+    for (const int size : dimensions_) {
+        if (size <= 0) {
+            throw std::invalid_argument("Maze dimensions must be positive");
+        }
+    }
 }
 
 std::uint64_t Maze::fullWallMask() const {
