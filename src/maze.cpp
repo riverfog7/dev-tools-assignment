@@ -17,9 +17,9 @@
 #include <string>
 #include <utility>
 
-const char MAZE_MAGIC[8] = {'N', 'D', 'M', 'A', 'Z', 'E', '\0', '\0'};
-const std::size_t MAZE_MAGIC_SIZE = 8;
-const std::size_t MD5_SIZE = 16;
+constexpr char MAZE_MAGIC[8] = {'N', 'D', 'M', 'A', 'Z', 'E', '\0', '\0'};
+constexpr std::size_t MAZE_MAGIC_SIZE = 8;
+constexpr std::size_t MD5_SIZE = 16;
 
 // cast int values to bytes for writing to stream
 // using bit cast (c++ 20)
