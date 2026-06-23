@@ -142,4 +142,4 @@ OF_ROOT = ../../..
 # PROJECT_CC = 
 
 # vscode template
-
+PROJECT_CFLAGS += -std=c++20
