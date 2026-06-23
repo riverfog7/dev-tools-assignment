@@ -4,7 +4,8 @@
 
 #include "maze.h"
 
-#include <CommonCrypto/CommonDigest.h>
+#define MD5_IMPLEMENTATION
+#include "md5.h"
 
 #include <algorithm>
 #include <array>
@@ -20,8 +21,9 @@
 
 constexpr char MAZE_MAGIC[8] = {'N', 'D', 'M', 'A', 'Z', 'E', '\0', '\0'};
 constexpr std::size_t MAZE_MAGIC_SIZE = 8;
-constexpr std::size_t MD5_SIZE = 16;
+constexpr std::size_t MAZE_MD5_SIZE = 16;
 constexpr int MAX_DIMENSIONS = 32;
+static_assert(MAZE_MD5_SIZE == MD5_SIZE);
 
 // cast int values to bytes for writing to stream
 // using bit cast (c++ 20)
@@ -84,13 +86,9 @@ std::uint64_t fullWallMaskFor(const std::size_t dimensionCount) {
     return (std::uint64_t{1} << bitCount) - 1;
 }
 
-std::array<unsigned char, MD5_SIZE> md5Digest(const std::string& bytes) {
-    if (bytes.size() > std::numeric_limits<CC_LONG>::max()) {
-        throw std::runtime_error("Maze data is too large to hash with MD5");
-    }
-
-    std::array<unsigned char, MD5_SIZE> digest{};
-    CC_MD5(bytes.data(), static_cast<CC_LONG>(bytes.size()), digest.data());
+std::array<unsigned char, MAZE_MD5_SIZE> md5Digest(const std::string& bytes) {
+    std::array<unsigned char, MAZE_MD5_SIZE> digest{};
+    md5(digest.data(), bytes.data(), bytes.size());
     return digest;
 }
 
@@ -185,7 +183,7 @@ std::ostream& Maze::serialize(std::ostream &out) const {
 
     const std::string payload = payloadStream.str();
     const auto digest = md5Digest(payload);
-    const auto digestBytes = std::bit_cast<std::array<char, MD5_SIZE>>(digest);
+    const auto digestBytes = std::bit_cast<std::array<char, MAZE_MD5_SIZE>>(digest);
 
     out.write(payload.data(), static_cast<std::streamsize>(payload.size()));
     out.write(digestBytes.data(), digestBytes.size());
@@ -199,7 +197,7 @@ std::istream& Maze::deserialize(std::istream &in) {
         std::istreambuf_iterator<char>()
     };
 
-    if (data.size() < MAZE_MAGIC_SIZE + MD5_SIZE) {
+    if (data.size() < MAZE_MAGIC_SIZE + MAZE_MD5_SIZE) {
         throw std::runtime_error("Maze file is too small");
     }
 
@@ -207,16 +205,16 @@ std::istream& Maze::deserialize(std::istream &in) {
         throw std::runtime_error("Maze file has invalid magic bytes");
     }
 
-    const std::size_t payloadSize = data.size() - MD5_SIZE;
+    const std::size_t payloadSize = data.size() - MAZE_MD5_SIZE;
     const std::string payload = data.substr(0, payloadSize);
     const auto expectedDigest = md5Digest(payload);
 
-    std::array<char, MD5_SIZE> actualDigestBytes{};
-    for (std::size_t i = 0; i < MD5_SIZE; ++i) {
+    std::array<char, MAZE_MD5_SIZE> actualDigestBytes{};
+    for (std::size_t i = 0; i < MAZE_MD5_SIZE; ++i) {
         actualDigestBytes[i] = data[payloadSize + i];
     }
 
-    const auto actualDigest = std::bit_cast<std::array<unsigned char, MD5_SIZE>>(actualDigestBytes);
+    const auto actualDigest = std::bit_cast<std::array<unsigned char, MAZE_MD5_SIZE>>(actualDigestBytes);
     if (expectedDigest != actualDigest) {
         throw std::runtime_error("Maze file checksum does not match");
     }
