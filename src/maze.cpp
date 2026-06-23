@@ -6,6 +6,7 @@
 
 #include <CommonCrypto/CommonDigest.h>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstring>
@@ -264,6 +265,49 @@ std::istream& Maze::deserialize(std::istream &in) {
     return in;
 }
 
+std::vector<Maze::Coord> Maze::solve(const Coord &start, const Coord &goal) const {
+    const std::size_t startIndex = indexOf(start);
+    const std::size_t goalIndex = indexOf(goal);
+
+    std::vector visited(cellCount(), false);
+    std::vector previous(cellCount(), cellCount());
+    std::stack<std::size_t> stack;
+
+    visited[startIndex] = true;
+    stack.push(startIndex);
+
+    while (!stack.empty()) {
+        const std::size_t current = stack.top();
+        stack.pop();
+
+        if (current == goalIndex) {
+            break;
+        }
+
+        const std::vector<Neighbor> neighbors = connectedUnvisitedNeighbors(current, visited);
+        for (const Neighbor& neighbor : neighbors) {
+            visited[neighbor.index] = true;
+            previous[neighbor.index] = current;
+            stack.push(neighbor.index);
+        }
+    }
+
+    if (!visited[goalIndex]) {
+        return {};
+    }
+
+    std::vector<Coord> path;
+    for (std::size_t index = goalIndex; index != cellCount(); index = previous[index]) {
+        path.push_back(coordOf(index));
+        if (index == startIndex) {
+            break;
+        }
+    }
+
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+
 std::size_t Maze::cellCount() const {
     std::size_t count = 1;
     for (const int size : dimensions_) {
@@ -368,6 +412,30 @@ std::vector<Maze::Neighbor> Maze::unvisitedNeighbors(const std::size_t index, co
     for (int axis = 0; axis < dim(); ++axis) {
         for (const bool positiveDirection : {true, false}) {
             if (!hasNeighbor(index, axis, positiveDirection)) {
+                continue;
+            }
+
+            const std::size_t neighbor = neighborIndex(index, axis, positiveDirection);
+            if (!visited.at(neighbor)) {
+                neighbors.push_back({neighbor, axis, positiveDirection});
+            }
+        }
+    }
+
+    return neighbors;
+}
+
+std::vector<Maze::Neighbor> Maze::connectedUnvisitedNeighbors(const std::size_t index, const std::vector<bool> &visited) const {
+    std::vector<Neighbor> neighbors;
+    const MazeCell cell(walls_.at(index), dim());
+
+    for (int axis = 0; axis < dim(); ++axis) {
+        for (const bool positiveDirection : {true, false}) {
+            if (!hasNeighbor(index, axis, positiveDirection)) {
+                continue;
+            }
+
+            if (cell.hasWall(axis, positiveDirection)) {
                 continue;
             }
 

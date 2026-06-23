@@ -6,6 +6,7 @@
 #define DEV_TOOLS_ASSIGNMENT_MAZE_H
 
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <optional>
 #include <random>
@@ -42,6 +43,7 @@ public:
 
     std::ostream& serialize(std::ostream& out) const;
     std::istream& deserialize(std::istream& in);
+    std::vector<Coord> solve(const Coord& start, const Coord& goal) const;
 
 private:
     struct Neighbor {
@@ -69,6 +71,7 @@ private:
     void removeWall(std::size_t index, int axis, bool positiveDirection);
     void removeWallBetween(std::size_t index, int axis, bool positiveDirection);
     std::vector<Neighbor> unvisitedNeighbors(std::size_t index, const std::vector<bool>& visited) const;
+    std::vector<Neighbor> connectedUnvisitedNeighbors(std::size_t index, const std::vector<bool>& visited) const;
     std::optional<Neighbor> randomUnvisitedNeighbor(std::size_t index, const std::vector<bool>& visited);
     void generateRandomizedDfs();
 };
