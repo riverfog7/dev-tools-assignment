@@ -308,6 +308,52 @@ std::vector<Maze::Coord> Maze::solve(const Coord &start, const Coord &goal) cons
     return path;
 }
 
+MazeSlice2D Maze::slice2D(const int xAxis, const int yAxis, const Coord &baseCoord) const {
+    if (xAxis < 0 || xAxis >= dim() || yAxis < 0 || yAxis >= dim()) {
+        throw std::out_of_range("Maze slice axis is out of bounds");
+    }
+    if (xAxis == yAxis) {
+        throw std::invalid_argument("Maze slice axes must be different");
+    }
+    if (baseCoord.size() != dimensions_.size()) {
+        throw std::invalid_argument("Maze slice base coordinate has wrong dimension count");
+    }
+
+    for (std::size_t axis = 0; axis < dimensions_.size(); ++axis) {
+        if (static_cast<int>(axis) == xAxis || static_cast<int>(axis) == yAxis) {
+            continue;
+        }
+        if (baseCoord[axis] < 0 || baseCoord[axis] >= dimensions_[axis]) {
+            throw std::out_of_range("Maze slice base coordinate is out of bounds");
+        }
+    }
+
+    return MazeSlice2D(this, xAxis, yAxis, baseCoord);
+}
+
+MazeSlice3D Maze::slice3D(const int xAxis, const int yAxis, const int zAxis, const Coord &baseCoord) const {
+    if (xAxis < 0 || xAxis >= dim() || yAxis < 0 || yAxis >= dim() || zAxis < 0 || zAxis >= dim()) {
+        throw std::out_of_range("Maze slice axis is out of bounds");
+    }
+    if (xAxis == yAxis || xAxis == zAxis || yAxis == zAxis) {
+        throw std::invalid_argument("Maze slice axes must be different");
+    }
+    if (baseCoord.size() != dimensions_.size()) {
+        throw std::invalid_argument("Maze slice base coordinate has wrong dimension count");
+    }
+
+    for (std::size_t axis = 0; axis < dimensions_.size(); ++axis) {
+        if (static_cast<int>(axis) == xAxis || static_cast<int>(axis) == yAxis || static_cast<int>(axis) == zAxis) {
+            continue;
+        }
+        if (baseCoord[axis] < 0 || baseCoord[axis] >= dimensions_[axis]) {
+            throw std::out_of_range("Maze slice base coordinate is out of bounds");
+        }
+    }
+
+    return MazeSlice3D(this, xAxis, yAxis, zAxis, baseCoord);
+}
+
 std::size_t Maze::cellCount() const {
     std::size_t count = 1;
     for (const int size : dimensions_) {
@@ -483,4 +529,119 @@ void Maze::generateRandomizedDfs() {
         visited[next->index] = true;
         stack.push(next->index);
     }
+}
+
+MazeSlice2D::MazeSlice2D(const Maze* maze, const int xAxis, const int yAxis, Maze::Coord baseCoord)
+    : maze_(maze), xAxis_(xAxis), yAxis_(yAxis), baseCoord_(std::move(baseCoord))
+{
+}
+
+int MazeSlice2D::xAxis() const {
+    return xAxis_;
+}
+
+int MazeSlice2D::yAxis() const {
+    return yAxis_;
+}
+
+int MazeSlice2D::width() const {
+    return maze_->shape()[xAxis_];
+}
+
+int MazeSlice2D::height() const {
+    return maze_->shape()[yAxis_];
+}
+
+Maze::Coord MazeSlice2D::coordAt(const int x, const int y) const {
+    if (x < 0 || x >= width() || y < 0 || y >= height()) {
+        throw std::out_of_range("Maze slice coordinate is out of bounds");
+    }
+
+    Maze::Coord coord = baseCoord_;
+    coord[xAxis_] = x;
+    coord[yAxis_] = y;
+    return coord;
+}
+
+Maze::MazeCell MazeSlice2D::cellAt(const int x, const int y) const {
+    return (*maze_)(coordAt(x, y));
+}
+
+bool MazeSlice2D::contains(const Maze::Coord& coord) const {
+    if (coord.size() != maze_->shape().size()) {
+        return false;
+    }
+
+    for (std::size_t axis = 0; axis < coord.size(); ++axis) {
+        if (coord[axis] < 0 || coord[axis] >= maze_->shape()[axis]) {
+            return false;
+        }
+        if (static_cast<int>(axis) != xAxis_ && static_cast<int>(axis) != yAxis_ && coord[axis] != baseCoord_[axis]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+MazeSlice3D::MazeSlice3D(const Maze* maze, const int xAxis, const int yAxis, const int zAxis, Maze::Coord baseCoord)
+    : maze_(maze), xAxis_(xAxis), yAxis_(yAxis), zAxis_(zAxis), baseCoord_(std::move(baseCoord))
+{
+}
+
+int MazeSlice3D::xAxis() const {
+    return xAxis_;
+}
+
+int MazeSlice3D::yAxis() const {
+    return yAxis_;
+}
+
+int MazeSlice3D::zAxis() const {
+    return zAxis_;
+}
+
+int MazeSlice3D::width() const {
+    return maze_->shape()[xAxis_];
+}
+
+int MazeSlice3D::height() const {
+    return maze_->shape()[yAxis_];
+}
+
+int MazeSlice3D::depth() const {
+    return maze_->shape()[zAxis_];
+}
+
+Maze::Coord MazeSlice3D::coordAt(const int x, const int y, const int z) const {
+    if (x < 0 || x >= width() || y < 0 || y >= height() || z < 0 || z >= depth()) {
+        throw std::out_of_range("Maze slice coordinate is out of bounds");
+    }
+
+    Maze::Coord coord = baseCoord_;
+    coord[xAxis_] = x;
+    coord[yAxis_] = y;
+    coord[zAxis_] = z;
+    return coord;
+}
+
+Maze::MazeCell MazeSlice3D::cellAt(const int x, const int y, const int z) const {
+    return (*maze_)(coordAt(x, y, z));
+}
+
+bool MazeSlice3D::contains(const Maze::Coord& coord) const {
+    if (coord.size() != maze_->shape().size()) {
+        return false;
+    }
+
+    for (std::size_t axis = 0; axis < coord.size(); ++axis) {
+        if (coord[axis] < 0 || coord[axis] >= maze_->shape()[axis]) {
+            return false;
+        }
+        if (static_cast<int>(axis) != xAxis_ && static_cast<int>(axis) != yAxis_ && static_cast<int>(axis) != zAxis_ && coord[axis] != baseCoord_[axis]) {
+            return false;
+        }
+    }
+
+    return true;
 }

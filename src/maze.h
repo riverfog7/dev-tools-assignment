@@ -12,6 +12,9 @@
 #include <random>
 #include <vector>
 
+class MazeSlice2D;
+class MazeSlice3D;
+
 class Maze
 {
 public:
@@ -44,6 +47,8 @@ public:
     std::ostream& serialize(std::ostream& out) const;
     std::istream& deserialize(std::istream& in);
     std::vector<Coord> solve(const Coord& start, const Coord& goal) const;
+    MazeSlice2D slice2D(int xAxis, int yAxis, const Coord& baseCoord) const;
+    MazeSlice3D slice3D(int xAxis, int yAxis, int zAxis, const Coord& baseCoord) const;
 
 private:
     struct Neighbor {
@@ -74,6 +79,51 @@ private:
     std::vector<Neighbor> connectedUnvisitedNeighbors(std::size_t index, const std::vector<bool>& visited) const;
     std::optional<Neighbor> randomUnvisitedNeighbor(std::size_t index, const std::vector<bool>& visited);
     void generateRandomizedDfs();
+};
+
+class MazeSlice2D {
+public:
+    int xAxis() const;
+    int yAxis() const;
+    int width() const;
+    int height() const;
+    Maze::Coord coordAt(int x, int y) const;
+    Maze::MazeCell cellAt(int x, int y) const;
+    bool contains(const Maze::Coord& coord) const;
+
+private:
+    friend class Maze;
+
+    MazeSlice2D(const Maze* maze, int xAxis, int yAxis, Maze::Coord baseCoord);
+
+    const Maze* maze_;
+    int xAxis_;
+    int yAxis_;
+    Maze::Coord baseCoord_;
+};
+
+class MazeSlice3D {
+public:
+    int xAxis() const;
+    int yAxis() const;
+    int zAxis() const;
+    int width() const;
+    int height() const;
+    int depth() const;
+    Maze::Coord coordAt(int x, int y, int z) const;
+    Maze::MazeCell cellAt(int x, int y, int z) const;
+    bool contains(const Maze::Coord& coord) const;
+
+private:
+    friend class Maze;
+
+    MazeSlice3D(const Maze* maze, int xAxis, int yAxis, int zAxis, Maze::Coord baseCoord);
+
+    const Maze* maze_;
+    int xAxis_;
+    int yAxis_;
+    int zAxis_;
+    Maze::Coord baseCoord_;
 };
 
 
