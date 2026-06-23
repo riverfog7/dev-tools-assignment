@@ -147,19 +147,21 @@ void ofApp::mousePressed(int x, int y, int button){
         return;
     }
 
-    for (int axis = 0; axis < game_.maze().dim(); ++axis) {
-        if (axisButtonRect(axis).inside(mouse)) {
-            axisSelected_[axis] = !axisSelected_[axis];
-            if (keepPlayerVisible_ && hasDrawableSlice()) {
-                syncHiddenAxesToPlayer();
+    if (axesAreaRect().inside(mouse)) {
+        for (int axis = 0; axis < game_.maze().dim(); ++axis) {
+            if (axisButtonRect(axis).inside(mouse)) {
+                axisSelected_[axis] = !axisSelected_[axis];
+                if (keepPlayerVisible_ && hasDrawableSlice()) {
+                    syncHiddenAxesToPlayer();
+                }
+                return;
             }
-            return;
-        }
 
-        if (sliderTrackRect(axis).inside(mouse)) {
-            draggedSliderAxis_ = axis;
-            updateSliderFromMouse(axis, static_cast<float>(x));
-            return;
+            if (sliderTrackRect(axis).inside(mouse)) {
+                draggedSliderAxis_ = axis;
+                updateSliderFromMouse(axis, static_cast<float>(x));
+                return;
+            }
         }
     }
 
@@ -173,6 +175,15 @@ void ofApp::mouseReleased(int x, int y, int button){
 
 //--------------------------------------------------------------
 void ofApp::mouseScrolled(int x, int y, float scrollX, float scrollY){
+    if (!axesAreaRect().inside(glm::vec2(x, y))) {
+        return;
+    }
+
+    axisScrollOffset_ = ofClamp(
+        axisScrollOffset_ - scrollY * axisRowHeight_,
+        0.0f,
+        maxAxisScrollOffset()
+    );
 
 }
 
@@ -188,6 +199,7 @@ void ofApp::mouseExited(int x, int y){
 
 //--------------------------------------------------------------
 void ofApp::windowResized(int w, int h){
+    clampAxisScrollOffset();
 
 }
 
@@ -224,6 +236,8 @@ void ofApp::prepareDefaultGame() {
 
 void ofApp::resetAxisUi() {
     axisSelected_.assign(game_.maze().dim(), false);
+    axisScrollOffset_ = 0.0f;
+
     if (game_.maze().dim() > 0) {
         axisSelected_[0] = true;
     }
@@ -264,6 +278,7 @@ void ofApp::syncHiddenAxesToPlayer() {
 void ofApp::drawGui() const {
     const float panelX = guiX();
     const float panelHeight = ofGetHeight() - margin_ * 2.0f;
+    const ofRectangle axesArea = axesAreaRect();
 
     ofSetColor(34);
     ofDrawRectangle(panelX, margin_, guiWidth_, panelHeight);
@@ -271,9 +286,26 @@ void ofApp::drawGui() const {
     ofSetColor(235);
     ofDrawBitmapString("Axes", panelX + guiPadding_, margin_ + 24.0f);
 
+    ofSetColor(28);
+    ofDrawRectangle(axesArea);
+
     if (game_.hasMaze()) {
         for (int axis = 0; axis < game_.maze().dim(); ++axis) {
-            drawAxisRow(axis);
+            const ofRectangle row = axisRowRect(axis);
+            if (row.y >= axesArea.y && row.y + row.height <= axesArea.y + axesArea.height) {
+                drawAxisRow(axis);
+            }
+        }
+
+        const float maxScroll = maxAxisScrollOffset();
+        if (maxScroll > 0.0f) {
+            const float handleHeight = std::max(24.0f, axesArea.height * axesArea.height / axesContentHeight());
+            const float handleY = axesArea.y + (axesArea.height - handleHeight) * (axisScrollOffset_ / maxScroll);
+
+            ofSetColor(54);
+            ofDrawRectRounded(axesArea.x + axesArea.width - 5.0f, axesArea.y, 5.0f, axesArea.height, 3.0f);
+            ofSetColor(125);
+            ofDrawRectRounded(axesArea.x + axesArea.width - 5.0f, handleY, 5.0f, handleHeight, 3.0f);
         }
     }
 
@@ -354,6 +386,10 @@ void ofApp::updateSliderFromMouse(const int axis, const float mouseX) {
     sliceCoord_[axis] = static_cast<int>(std::round(t * maxValue));
 }
 
+void ofApp::clampAxisScrollOffset() {
+    axisScrollOffset_ = ofClamp(axisScrollOffset_, 0.0f, maxAxisScrollOffset());
+}
+
 void ofApp::saveMaze() {
     if (!game_.hasMaze()) {
         statusText_ = "No maze to save";
@@ -393,9 +429,35 @@ float ofApp::guiX() const {
     return ofGetWidth() - guiWidth_ - margin_;
 }
 
-ofRectangle ofApp::axisButtonRect(const int axis) const {
+float ofApp::axesContentHeight() const {
+    return axisSelected_.size() * axisRowHeight_;
+}
+
+float ofApp::maxAxisScrollOffset() const {
+    return std::max(0.0f, axesContentHeight() - axesAreaRect().height);
+}
+
+ofRectangle ofApp::axesAreaRect() const {
     const float x = guiX() + guiPadding_;
-    const float y = margin_ + 44.0f + axis * axisRowHeight_;
+    const float y = margin_ + 42.0f;
+    const float width = guiWidth_ - guiPadding_ * 2.0f;
+    const float reservedHeight = 286.0f;
+    const float height = std::max(120.0f, ofGetHeight() - y - margin_ - reservedHeight);
+
+    return {x, y, width, height};
+}
+
+ofRectangle ofApp::axisRowRect(const int axis) const {
+    const ofRectangle axesArea = axesAreaRect();
+    const float y = axesArea.y + axis * axisRowHeight_ - axisScrollOffset_;
+
+    return {axesArea.x, y, axesArea.width, axisRowHeight_};
+}
+
+ofRectangle ofApp::axisButtonRect(const int axis) const {
+    const ofRectangle row = axisRowRect(axis);
+    const float x = row.x;
+    const float y = row.y + 4.0f;
     return {x, y, 44.0f, 30.0f};
 }
 
@@ -407,7 +469,8 @@ ofRectangle ofApp::sliderTrackRect(const int axis) const {
 }
 
 ofRectangle ofApp::solutionToggleRect() const {
-    const float y = margin_ + 58.0f + axisSelected_.size() * axisRowHeight_;
+    const ofRectangle axesArea = axesAreaRect();
+    const float y = axesArea.y + axesArea.height + 16.0f;
     const float x = guiX() + guiPadding_;
     return {x, y, guiWidth_ - guiPadding_ * 2.0f, 34.0f};
 }

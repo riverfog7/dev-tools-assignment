@@ -41,10 +41,15 @@ private:
         void drawHud() const;
 
         void updateSliderFromMouse(int axis, float mouseX);
+        void clampAxisScrollOffset();
         void saveMaze();
         void loadMaze();
 
         float guiX() const;
+        float axesContentHeight() const;
+        float maxAxisScrollOffset() const;
+        ofRectangle axesAreaRect() const;
+        ofRectangle axisRowRect(int axis) const;
         ofRectangle axisButtonRect(int axis) const;
         ofRectangle sliderTrackRect(int axis) const;
         ofRectangle solutionToggleRect() const;
@@ -58,6 +63,7 @@ private:
         std::vector<bool> axisSelected_;
 
         int draggedSliderAxis_ = -1;
+        float axisScrollOffset_ = 0.0f;
         bool showSolutionPath_ = false;
         bool keepPlayerVisible_ = true;
         std::string statusText_;
