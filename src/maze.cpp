@@ -113,7 +113,7 @@ std::uint64_t Maze::MazeCell::wallBit(const int axis, const bool positiveDirecti
     }
 
     const int directionOffset = positiveDirection ? 0 : 1;
-    return 1 << (axis * 2 + directionOffset);
+    return std::uint64_t{1} << (axis * 2 + directionOffset);
 }
 
 Maze::Maze()
