@@ -20,6 +20,7 @@
 constexpr char MAZE_MAGIC[8] = {'N', 'D', 'M', 'A', 'Z', 'E', '\0', '\0'};
 constexpr std::size_t MAZE_MAGIC_SIZE = 8;
 constexpr std::size_t MD5_SIZE = 16;
+constexpr int MAX_DIMENSIONS = 32;
 
 // cast int values to bytes for writing to stream
 // using bit cast (c++ 20)
@@ -75,7 +76,7 @@ std::size_t cellCountFor(const std::vector<int>& dimensions) {
 
 std::uint64_t fullWallMaskFor(const std::size_t dimensionCount) {
     const std::size_t bitCount = dimensionCount * 2;
-    if (bitCount == 64) {
+    if (bitCount == MAX_DIMENSIONS * 2) {
         return std::numeric_limits<std::uint64_t>::max();
     }
 
@@ -170,7 +171,7 @@ std::ostream& Maze::serialize(std::ostream &out) const {
     std::ostringstream payloadStream(std::ios::out | std::ios::binary);
     payloadStream.write(MAZE_MAGIC, MAZE_MAGIC_SIZE);
 
-    const std::uint32_t dimensionCount = static_cast<std::uint32_t>(dimensions_.size());
+    const auto dimensionCount = static_cast<std::uint32_t>(dimensions_.size());
     writeUint32(payloadStream, dimensionCount);
 
     for (const int dimension : dimensions_) {
@@ -224,7 +225,7 @@ std::istream& Maze::deserialize(std::istream &in) {
 
     const std::uint32_t dimensionCount = readUint32(payloadStream);
 
-    if (dimensionCount == 0 || dimensionCount > 32) {
+    if (dimensionCount == 0 || dimensionCount > MAX_DIMENSIONS) {
         throw std::runtime_error("Maze file has invalid dimension count");
     }
 
@@ -310,7 +311,7 @@ void Maze::validateDimensions() const {
     if (dimensions_.empty()) {
         throw std::invalid_argument("Maze must have at least one dimension");
     }
-    if (dimensions_.size() > 32) {
+    if (dimensions_.size() > MAX_DIMENSIONS) {
         throw std::invalid_argument("Maze supports at most 32 dimensions");
     }
     for (const int size : dimensions_) {
@@ -322,7 +323,7 @@ void Maze::validateDimensions() const {
 
 std::uint64_t Maze::fullWallMask() const {
     const int bitCount = dim() * 2;
-    if (bitCount == 64) {
+    if (bitCount == MAX_DIMENSIONS * 2) {
         return std::numeric_limits<std::uint64_t>::max();
     }
 
