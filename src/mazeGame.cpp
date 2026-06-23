@@ -106,8 +106,16 @@ bool MazeGame::move(const int axis, const bool positiveDirection) {
         return false;
     }
 
-    player_[axis] += positiveDirection ? 1 : -1;
-    playerPath_.push_back(player_);
+    Maze::Coord next = player_;
+    next[axis] += positiveDirection ? 1 : -1;
+
+    if (playerPath_.size() >= 2 && playerPath_[playerPath_.size() - 2] == next) {
+        playerPath_.pop_back();
+    } else {
+        playerPath_.push_back(next);
+    }
+
+    player_ = next;
     return true;
 }
 
